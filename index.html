@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аренда палаток</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #f4f6f9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info h3 {
+            margin-bottom: 4px;
+        }
+
+        .info span {
+            color: #475569;
+            font-size: 14px;
+        }
+
+        .price {
+            font-weight: bold;
+            color: #2563eb;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .cart {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .total {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 16px 0;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .badge {
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 10px;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        #status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+            display: block !important;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏕️ Аренда снаряжения</h1>
+        <p style="color: #dc2626; font-size: 14px; text-align: center; margin-bottom: 20px;">⚠️ Дата бронируется только
+            после подтверждения по телефону</p>
+
+        <!-- Список товаров -->
+        <div id="catalog"></div>
+
+        <!-- Корзина -->
+        <div class="cart" id="cartBlock">
+            <h3>🛒 Ваша корзина</h3>
+            <div id="cartItems">
+                <p style="color: #94a3b8;">Пока пусто</p>
+            </div>
+            <div id="totalPrice" class="total">Итого: 0 ₽</div>
+            <div id="depositInfo" style="color: #64748b; font-size: 14px;">Залог (справочно): 0 ₽</div>
+
+            <input type="date" id="rentDate" placeholder="Дата аренды">
+            <input type="tel" id="userPhone" placeholder="+7 999 999-99-99" required>
+            <button id="sendOrderBtn" style="width: 100%; margin-top: 16px;">📩 Отправить заявку</button>
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        // ------------------ НАСТРОЙКИ (ПОМЕНЯЙТЕ ЗДЕСЬ) ------------------
+        const BOT_TOKEN = '8216789348:AAF9EA4IG9ISg-knVt8lUWek47To6KhF8Uo';  // Вставьте сюда ваш токен
+        const CHAT_ID = '997150200';             // Вставьте сюда ваш ID
+        // -----------------------------------------------------------------
+
+        // База данных снаряжения (добавляйте свои позиции)
+        const catalogItems = [
+            { id: 1, name: 'Палатка 4-местная', price: 1500, deposit: 3000 },
+            { id: 2, name: 'Спальник -5°C', price: 500, deposit: 1000 },
+            { id: 3, name: 'Туристический коврик', price: 300, deposit: 500 },
+            { id: 4, name: 'Фонарь светодиодный', price: 200, deposit: 400 }
+        ];
+
+        let cart = [];
+
+        // Рендерим каталог
+        function renderCatalog() {
+            const container = document.getElementById('catalog');
+            container.innerHTML = '';
+            catalogItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                <div class="info">
+                    <h3>${item.name}</h3>
+                    <span>Залог: ${item.deposit}₽</span>
+                </div>
+                <div>
+                    <span class="price">${item.price}₽/сутки</span>
+                    <button onclick="addToCart(${item.id})" style="margin-left: 12px;">+</button>
+                </div>
+            `;
+                container.appendChild(div);
+            });
+        }
+
+        // Добавление в корзину
+        window.addToCart = function (id) {
+            const item = catalogItems.find(i => i.id === id);
+            const existing = cart.find(i => i.id === id);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({ ...item, qty: 1 });
+            }
+            updateCartUI();
+        };
+
+        // Удаление из корзины
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            updateCartUI();
+        }
+
+        // Обновление интерфейса корзины
+        function updateCartUI() {
+            const container = document.getElementById('cartItems');
+            const totalSpan = document.getElementById('totalPrice');
+            const depositSpan = document.getElementById('depositInfo');
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p style="color: #94a3b8;">Пока пусто</p>';
+                totalSpan.textContent = 'Итого: 0 ₽';
+                depositSpan.textContent = 'Залог (справочно): 0 ₽';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+            let deposit = 0;
+            cart.forEach(item => {
+                total += item.price * item.qty;
+                deposit += item.deposit * item.qty;
+                html += `
+                <div class="cart-item">
+                    <span>${item.name} x${item.qty}</span>
+                    <span>${item.price * item.qty} ₽ <button onclick="removeFromCart(${item.id})" style="background: #ef4444; padding: 4px 10px; margin-left: 8px;">✕</button></span>
+                </div>
+            `;
+            });
+            container.innerHTML = html;
+            totalSpan.textContent = `Итого: ${total} ₽`;
+            depositSpan.textContent = `Залог (справочно): ${deposit} ₽`;
+        }
+
+        // ------------------ ОТПРАВКА В ТЕЛЕГРАМ ------------------
+        document.getElementById('sendOrderBtn').addEventListener('click', async function () {
+            const statusDiv = document.getElementById('status');
+            const phone = document.getElementById('userPhone').value.trim();
+            const date = document.getElementById('rentDate').value;
+
+            // Простая валидация
+            if (cart.length === 0) {
+                statusDiv.className = 'error';
+                statusDiv.textContent = '❌ Добавьте хотя бы один товар в корзину!';
+                return;
+            }
+            if (!phone || phone.length < 10) {
+                statusDiv.className = 'error';
+                statusDiv.textContent = '❌ Введите корректный номер телефона!';
+                return;
+            }
+            if (!date) {
+                statusDiv.className = 'error';
+                statusDiv.textContent = '❌ Выберите дату аренды!';
+                return;
+            }
+
+            // Считаем итоги
+            let total = 0;
+            let deposit = 0;
+            let itemsList = '';
+            cart.forEach(item => {
+                total += item.price * item.qty;
+                deposit += item.deposit * item.qty;
+                itemsList += `- ${item.name} x${item.qty} = ${item.price * item.qty}₽\n`;
+            });
+
+            // Формируем текст для Телеграм
+            const message = `🆕 *НОВАЯ ЗАЯВКА!*\n\n` +
+                `📞 Телефон: ${phone}\n` +
+                `📅 Желаемая дата: ${date}\n\n` +
+                `📦 *Состав:*\n${itemsList}\n` +
+                `💰 *Итого:* ${total}₽\n` +
+                `💸 *Залог:* ${deposit}₽ (справочно)`;
+
+            // Отключаем кнопку, чтобы не спамили
+            const btn = document.getElementById('sendOrderBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Отправка...';
+
+            try {
+                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+
+                if (response.ok) {
+                    statusDiv.className = 'success';
+                    statusDiv.textContent = '✅ Заявка отправлена! Мы перезвоним вам в течение 15 минут.';
+                    cart = []; // Очищаем корзину
+                    updateCartUI();
+                    document.getElementById('userPhone').value = '';
+                    document.getElementById('rentDate').value = '';
+                } else {
+                    throw new Error('Ошибка сервера');
+                }
+            } catch (error) {
+                statusDiv.className = 'error';
+                statusDiv.textContent = '❌ Ошибка отправки. Попробуйте позже или позвоните нам вручную.';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📩 Отправить заявку';
+            }
+        });
+
+        // Запуск
+        renderCatalog();
+        updateCartUI();
+    </script>
+</body>
+
+</html>
