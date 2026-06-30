@@ -145,7 +145,7 @@
                 <p style="color: #94a3b8;">Пока пусто</p>
             </div>
             <div id="totalPrice" class="total">Итого: 0 ₽</div>
-            <div id="depositInfo" style="color: #64748b; font-size: 14px;">Залог (справочно): 0 ₽</div>
+            <div id="depositInfo" style="color: #64748b; font-size: 14px;">Залог: 0 ₽</div>
 
             <input type="date" id="rentDate" placeholder="Дата аренды">
             <input type="tel" id="userPhone" placeholder="+7 999 999-99-99" required>
@@ -155,17 +155,24 @@
     </div>
 
     <script>
-        // ------------------ НАСТРОЙКИ (ПОМЕНЯЙТЕ ЗДЕСЬ) ------------------
-        const BOT_TOKEN = '8216789348:AAF9EA4IG9ISg-knVt8lUWek47To6KhF8Uo';  // Вставьте сюда ваш токен
-        const CHAT_ID = '997150200';             // Вставьте сюда ваш ID
+        // ------------------ НАСТРОЙКИ ОТПРАВКИ ------------------
+        const BOT_TOKEN = '8216789348:AAF9EA4IG9ISg-knVt8lUWek47To6KhF8Uo';
+        const CHAT_ID = '997150200';
         // -----------------------------------------------------------------
 
-        // База данных снаряжения (добавляйте свои позиции)
+        // База данных снаряжения 
         const catalogItems = [
-            { id: 1, name: 'Палатка 4-местная', price: 1500, deposit: 3000 },
-            { id: 2, name: 'Спальник -5°C', price: 500, deposit: 1000 },
-            { id: 3, name: 'Туристический коврик', price: 300, deposit: 500 },
-            { id: 4, name: 'Фонарь светодиодный', price: 200, deposit: 400 }
+            { id: 1, name: 'Палатка 4-местная', price: 500, deposit: 500 },
+            { id: 2, name: 'Палатка 2-местная', price: 400, deposit: 400 },
+            { id: 3, name: 'Спальник -5°C', price: 300, deposit: 300 },
+            { id: 4, name: 'Стул раскладной', price: 150, deposit: 150 },
+            { id: 5, name: 'Стол раскладной', price: 400, deposit: 400 },
+            { id: 6, name: 'Рюкзак 80л', price: 400, deposit: 400 },
+            { id: 7, name: 'Надувной коврик', price: 400, deposit: 400 },
+            { id: 8, name: 'Туристический коврик', price: 150, deposit: 150 },
+            { id: 9, name: 'Коврик теплоизаляционный', price: 150, deposit: 150 },
+            { id: 9, name: 'Вкладыш для спальника', price: 150, deposit: 150 }
+
         ];
 
         let cart = [];
@@ -310,7 +317,7 @@
                 }
             } catch (error) {
                 statusDiv.className = 'error';
-                statusDiv.textContent = '❌ Ошибка отправки. Попробуйте позже или позвоните нам вручную.';
+                statusDiv.textContent = '❌ Ошибка отправки. Попробуйте позже или позвоните по номеру +79052865150.';
             } finally {
                 btn.disabled = false;
                 btn.textContent = '📩 Отправить заявку';
