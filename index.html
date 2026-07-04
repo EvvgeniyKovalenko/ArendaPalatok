@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Аренда палаток</title>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -158,6 +159,14 @@
         // ------------------ НАСТРОЙКИ ОТПРАВКИ ------------------
         const BOT_TOKEN = '8216789348:AAF9EA4IG9ISg-knVt8lUWek47To6KhF8Uo';
         const CHAT_ID = '997150200';
+
+        // ------------------ НАСТРОЙКИ EMAILJS ------------------
+        const EMAILJS_PUBLIC_KEY = 'dv9MAOrcU9W8GfdQk'; // из раздела API Keys
+        const EMAILJS_SERVICE_ID = 'service_dv8iu7s'; // из раздела Email Services
+        const EMAILJS_TEMPLATE_ID = 'template_fp5vu2l'; // из раздела Email Templates
+
+        emailjs.init(EMAILJS_PUBLIC_KEY);
+        // -----------------------------------------------------------------
         // -----------------------------------------------------------------
 
         // База данных снаряжения 
@@ -253,7 +262,7 @@
             const phone = document.getElementById('userPhone').value.trim();
             const date = document.getElementById('rentDate').value;
 
-            // Простая валидация
+            // --- ВАЛИДАЦИЯ (оставляем как есть) ---
             if (cart.length === 0) {
                 statusDiv.className = 'error';
                 statusDiv.textContent = '❌ Добавьте хотя бы один товар в корзину!';
@@ -270,7 +279,7 @@
                 return;
             }
 
-            // Считаем итоги
+            // --- СБОР ДАННЫХ ---
             let total = 0;
             let deposit = 0;
             let itemsList = '';
@@ -280,48 +289,85 @@
                 itemsList += `- ${item.name} x${item.qty} = ${item.price * item.qty}₽\n`;
             });
 
-            // Формируем текст для Телеграм
-            const message = `🆕 *НОВАЯ ЗАЯВКА!*\n\n` +
-                `📞 Телефон: ${phone}\n` +
-                `📅 Желаемая дата: ${date}\n\n` +
-                `📦 *Состав:*\n${itemsList}\n` +
-                `💰 *Итого:* ${total}₽\n` +
-                `💸 *Залог:* ${deposit}₽ (справочно)`;
+            const orderData = {
+                phone: phone,
+                date: date,
+                itemsList: itemsList,
+                total: total,
+                deposit: deposit
+            };
 
-            // Отключаем кнопку, чтобы не спамили
+            // Блокируем кнопку
             const btn = document.getElementById('sendOrderBtn');
             btn.disabled = true;
             btn.textContent = '⏳ Отправка...';
 
-            try {
-                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: CHAT_ID,
-                        text: message,
-                        parse_mode: 'Markdown'
-                    })
-                });
+            let allSuccess = true;
+            let errorMessages = [];
 
-                if (response.ok) {
-                    statusDiv.className = 'success';
-                    statusDiv.textContent = '✅ Заявка отправлена! Мы перезвоним вам в течение 15 минут.';
-                    cart = []; // Очищаем корзину
-                    updateCartUI();
-                    document.getElementById('userPhone').value = '';
-                    document.getElementById('rentDate').value = '';
-                } else {
-                    throw new Error('Ошибка сервера');
+            // --- ОТПРАВКА В TELEGRAM ---
+            try {
+                const tgResult = await sendToTelegram(orderData);
+                if (!tgResult) {
+                    allSuccess = false;
+                    errorMessages.push('Telegram');
                 }
-            } catch (error) {
-                statusDiv.className = 'error';
-                statusDiv.textContent = '❌ Ошибка отправки. Попробуйте позже или позвоните по номеру +79052865150.';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '📩 Отправить заявку';
+            } catch (e) {
+                allSuccess = false;
+                errorMessages.push('Telegram');
+                console.log('Telegram недоступен');
             }
+
+            async function sendToEmail(orderData) {
+                try {
+                    const templateParams = {
+                        phone: orderData.phone,
+                        date: orderData.date,
+                        items: orderData.itemsList,
+                        total: orderData.total,
+                        deposit: orderData.deposit
+                    };
+
+                    const response = await emailjs.send(
+                        EMAILJS_SERVICE_ID,
+                        EMAILJS_TEMPLATE_ID,
+                        templateParams
+                    );
+
+                    console.log('Письмо отправлено:', response);
+                    return true;
+                } catch (error) {
+                    console.error('Ошибка отправки письма:', error);
+                    return false;
+                }
+            }
+
+            // --- ОТПРАВКА НА ПОЧТУ (всегда, как резервный канал) ---
+            const emailOk = await sendToEmail(orderData);
+            if (!emailOk) {
+                allSuccess = false;
+                errorMessages.push('Email');
+            }
+
+            // --- ОБРАБОТКА РЕЗУЛЬТАТА ---
+            if (allSuccess && emailOk) {
+                statusDiv.className = 'success';
+                statusDiv.textContent = '✅ Заявка отправлена! Мы свяжемся с вами в ближайшее время.';
+                cart = [];
+                updateCartUI();
+                document.getElementById('userPhone').value = '';
+                document.getElementById('rentDate').value = '';
+            } else {
+                statusDiv.className = 'error';
+                if (errorMessages.length === 2) {
+                    statusDiv.textContent = '❌ Не удалось отправить заявку ни одним способом. Позвоните нам по телефону в объявлении.';
+                } else {
+                    statusDiv.textContent = `⚠️ Заявка отправлена только через ${errorMessages.join(', ')}. Проверьте настройки другого канала.`;
+                }
+            }
+
+            btn.disabled = false;
+            btn.textContent = '📩 Отправить заявку';
         });
 
         // Запуск

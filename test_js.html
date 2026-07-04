@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+    //каталог
+    <div id="form"></div>
+
+
+    // корзина
+
+    <div class="Basket">
+        <div>
+            <h3>Ваша корзина</h3>
+            <p>пока пусто</p>
+            <div class="cardItem"></div>
+            <span></span>
+        </div>
+        <div class="">
+            <input type="date" name="" id="rentDate" placeholder="выберете дату">
+            <input type="phone" id="rentDate" placeholder="введите телефон" required>
+            <button>Отправить</button>
+            <div>Статус</div>
+        </div>
+    </div>
+
+
+
+    <script>
+
+
+        const catalog = [
+            { id: 1, name: 'Палатка 4-местная', price: 500, deposit: 500 },
+            { id: 2, name: 'Палатка 2-местная', price: 400, deposit: 400 },
+            { id: 3, name: 'Спальник -5°C', price: 300, deposit: 300 },
+            { id: 4, name: 'Стул раскладной', price: 150, deposit: 150 }
+        ];
+
+        let cart = [];
+
+        //пребирает массив и пушит дивы в целевой контейнер
+
+
+        function renderCard() {
+            const form = document.getElementById('form')
+            form.innerHTML = ''
+            catalog.map(item => {
+                const div = document.createElement('div')
+                div.className = 'card'
+                div.innerHTML =
+                    `
+                <div class="info">
+                    <h3>${item.name}</h3>
+                    <span>Залог: ${item.deposit}₽</span>
+                </div>
+                <div>
+                    <span class="price">${item.price}₽/сутки</span>
+                    <button onclick="addToCart(${item.id})" style="margin-left: 12px;">+</button>
+                </div>
+            `;
+                form.appendChild(div)
+            })
+        };
+        renderCard();
+
+        //корзина
+
+        window.addToCart = function (id) {
+            const card = catalog.find(i => i.id === id);
+            const exist = cart.find(i => i.id === id);
+            if (exist) {
+                exist.qnt += 1;
+            } else {
+                cart.push({ ...card, qnt: 1 })
+            }
+            console.log(cart)
+        };
+
+        function delFromCart(id) {
+            cart.fil
+        }
+
+
+
+    </script>
+
+
+</body>
+
+</html>
